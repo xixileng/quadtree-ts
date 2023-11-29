@@ -89,6 +89,17 @@ class Quadtree {
                 maxLevels: this.maxLevels,
             }, level);
         }
+        const objects = [];
+        for (let i = 0; i < this.objects.length; i++) {
+            const indexes = this.getIndex(this.objects[i]);
+            if (indexes.length === 1) {
+                this.nodes[indexes[0]].insert(this.objects[i]);
+            }
+            else {
+                objects.push(this.objects[i]);
+            }
+        }
+        this.objects = objects;
     }
     /**
      * Insert an object into the node. If the node
@@ -107,30 +118,23 @@ class Quadtree {
      */
     insert(obj) {
         //if we have subnodes, call insert on matching subnodes
-        if (this.nodes.length) {
-            const indexes = this.getIndex(obj);
-            for (let i = 0; i < indexes.length; i++) {
-                this.nodes[indexes[i]].insert(obj);
+        if (!this.nodes.length) {
+            if (this.objects.length < this.maxObjects || this.level >= this.maxLevels) {
+                this.objects.push(obj);
             }
-            return;
-        }
-        //otherwise, store object here
-        this.objects.push(obj);
-        //maxObjects reached
-        if (this.objects.length > this.maxObjects && this.level < this.maxLevels) {
-            //split if we don't already have subnodes
-            if (!this.nodes.length) {
+            else {
                 this.split();
+                this.insert(obj);
             }
-            //add all objects to their corresponding subnode
-            for (let i = 0; i < this.objects.length; i++) {
-                const indexes = this.getIndex(this.objects[i]);
-                for (let k = 0; k < indexes.length; k++) {
-                    this.nodes[indexes[k]].insert(this.objects[i]);
-                }
+        }
+        else {
+            const indexes = this.getIndex(obj);
+            if (indexes.length === 1) {
+                this.nodes[indexes[0]].insert(obj);
             }
-            //clean up this node
-            this.objects = [];
+            else {
+                this.objects.push(obj);
+            }
         }
     }
     /**
@@ -154,10 +158,6 @@ class Quadtree {
             for (let i = 0; i < indexes.length; i++) {
                 returnObjects = returnObjects.concat(this.nodes[indexes[i]].retrieve(obj));
             }
-        }
-        // remove duplicates
-        if (this.level === 0) {
-            return Array.from(new Set(returnObjects));
         }
         return returnObjects;
     }
